@@ -11,8 +11,9 @@ This guide walks you through the complete hardware setup for the DDC Monitor Inp
 | **Raspberry Pi Zero W** | Main controller | WiFi required for SSH access |
 | **Micro SD Card** | Storage (16GB+) | Class 10 recommended |
 | **Mini HDMI Cable** | Pi to monitor connection | For DDC/CI communication |
-| **Micro USB OTG Adapter** | Macro pad to pi connection | Enables USB host mode |
+| **Micro USB OTG Adapter** | Macro pad connection | Enables USB host mode |
 | **Programmable Macro Pad** | Input control | QMK/VIA compatible |
+| **Micro USB Power Adapter** | Pi power supply | 5V, 1A minimum rating |
 | **DDC/CI Compatible Monitor** | Display device | Most modern monitors work |
 
 ### Tested Hardware
@@ -27,10 +28,10 @@ This guide walks you through the complete hardware setup for the DDC Monitor Inp
 
 ```
 [Computer 1] ──(DisplayPort)──┐
-                               ├── [Monitor] ──(Mini HDMI)── [Pi Zero W]
+                               ├── [Monitor] ──(Mini HDMI)── [Pi Zero W] ──(Micro USB Power)── [Power Adapter/USB Charger]
 [Computer 2] ──(USB-C)────────┘                                    │
                                                                     │
-[Macro Pad] ──(USB)── [OTG Adapter] ──(Micro USB)──────────────────┘
+[Macro Pad] ──(USB)── [OTG Adapter] ──(Micro USB Data)─────────────┘
 ```
 
 ### Step-by-Step Connections
@@ -48,8 +49,9 @@ This guide walks you through the complete hardware setup for the DDC Monitor Inp
    - OTG Adapter → Pi Zero W micro USB port
 
 4. **Power the Pi**
-   - Use separate micro USB power supply
-   - Or power via GPIO if you have a hat with power management
+   - Pi Zero W micro USB power port → USB power adapter (5V, 1A minimum)
+   - Use dedicated power supply, not computer USB port
+   - Keep power cable separate from data cable
 
 ## ⚙️ Raspberry Pi Configuration
 
@@ -281,6 +283,20 @@ Most modern monitors support DDC/CI, but some have it disabled by default:
 - DDC commands can take 1-2 seconds to execute
 - Some monitors have faster switching between certain inputs
 - The Pi Zero W is sufficient for this application
+
+## 📐 Physical Installation
+
+### Mounting Options
+
+1. **Desktop Setup**: Pi Zero case with heat dissipation
+2. **Monitor Mount**: VESA-compatible case attached to monitor
+3. **Under-desk**: Adhesive mount or small enclosure
+
+### Cable Routing
+
+- Route cables to avoid strain on Pi Zero connectors
+- Use cable management for clean installation
+- Consider strain relief for frequently moved cables
 
 ## ✅ Final Verification
 
