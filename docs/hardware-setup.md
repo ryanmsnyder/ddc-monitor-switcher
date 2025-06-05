@@ -11,7 +11,7 @@ This guide walks you through the complete hardware setup for the DDC Monitor Inp
 | **Raspberry Pi Zero W** | Main controller | WiFi required for SSH access |
 | **Micro SD Card** | Storage (16GB+) | Class 10 recommended |
 | **Mini HDMI Cable** | Pi to monitor connection | For DDC/CI communication |
-| **Micro USB OTG Adapter** | Macro pad connection | Enables USB host mode |
+| **Micro USB OTG Adapter** | Macro pad to pi connection | Enables USB host mode |
 | **Programmable Macro Pad** | Input control | QMK/VIA compatible |
 | **DDC/CI Compatible Monitor** | Display device | Most modern monitors work |
 
