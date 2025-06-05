@@ -27,11 +27,11 @@ This guide walks you through the complete hardware setup for the DDC Monitor Inp
 ### Connection Diagram
 
 ```
-[Computer 1] ──(DisplayPort)──┐
-                               ├── [Monitor] ──(Mini HDMI)── [Pi Zero W] ──(Micro USB Power)── [Power Adapter/USB Charger]
-[Computer 2] ──(USB-C)────────┘                                    │
-                                                                    │
-[Macro Pad] ──(USB)── [OTG Adapter] ──(Micro USB Data)─────────────┘
+[Computer 1] ── (DisplayPort) ──┐
+                                ├── [Monitor] ── (Mini HDMI) ── [Pi Zero W] ── (Micro USB Power Cable) ── [Power Adapter/USB Charger]
+[Computer 2] ── (USB-C) ────────┘                                     │
+                                                                      │
+[Macro Pad] ── (USB) ── [OTG Adapter] ── (Micro USB Data)─────────────┘
 ```
 
 ### Step-by-Step Connections
