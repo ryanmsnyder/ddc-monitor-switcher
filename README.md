@@ -68,7 +68,7 @@ sudo ddcutil setvcp 60 27 --bus=X  # USB-C
 
 ### 4. Program Your Macro Pad
 
-Using VIA or QMK, program your macro pad buttons to:
+Using VIA or QMK (I used [VIA's browser app](https://usevia.app)), program your macro pad buttons to:
 - **Button 1**: F23
 - **Button 2**: F24
 
