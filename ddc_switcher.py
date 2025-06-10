@@ -31,10 +31,12 @@ class DDCMonitorSwitcher:
         self.inputs = {
             'displayport': 15,  # VCP code for DisplayPort
             'usbc': 27,         # VCP code for USB-C
+            'hdmi': 17,         # VCP code for HDMI
         }
         self.button_mapping = {
             evdev.ecodes.KEY_F23: 'displayport',  # Button 1 -> DisplayPort
             evdev.ecodes.KEY_F24: 'usbc',         # Button 2 -> USB-C
+            evdev.ecodes.KEY_F22: 'hdmi_standby', # Button 3 -> HDMI + Standby
         }
         self.device = None
         self.current_input = None
@@ -132,9 +134,72 @@ class DDCMonitorSwitcher:
                     return 'displayport'
                 elif 'x1b' in output or '27' in output:
                     return 'usbc'
+                elif 'x11' in output or '17' in output:
+                    return 'hdmi'
             return 'unknown'
         except:
             return 'unknown'
+    
+    def switch_to_hdmi_and_standby(self):
+        """Switch to HDMI input and then activate standby mode"""
+        logging.info("Starting HDMI + Standby sequence")
+        
+        # Step 1: Switch to HDMI input
+        hdmi_cmd = [
+            'ddcutil', 'setvcp', '60', '17', 
+            f'--bus={self.bus_number}'
+        ]
+        
+        try:
+            logging.info("Step 1: Switching to HDMI input")
+            logging.info(f"Executing command: {' '.join(hdmi_cmd)}")
+            
+            hdmi_result = subprocess.run(hdmi_cmd, capture_output=True, text=True, timeout=10)
+            
+            logging.info(f"HDMI switch return code: {hdmi_result.returncode}")
+            if hdmi_result.stdout:
+                logging.info(f"HDMI switch stdout: {hdmi_result.stdout}")
+            if hdmi_result.stderr:
+                logging.info(f"HDMI switch stderr: {hdmi_result.stderr}")
+            
+            if hdmi_result.returncode != 0:
+                logging.error(f"HDMI switch failed with code {hdmi_result.returncode}")
+                return False
+            
+            logging.info("HDMI switch completed successfully")
+            self.current_input = 'hdmi'
+            
+            # Step 2: Activate standby mode
+            standby_cmd = [
+                'ddcutil', 'setvcp', 'D6', '02', 
+                f'--bus={self.bus_number}', '--noverify'
+            ]
+            
+            logging.info("Step 2: Activating standby mode")
+            logging.info(f"Executing command: {' '.join(standby_cmd)}")
+            
+            standby_result = subprocess.run(standby_cmd, capture_output=True, text=True, timeout=10)
+            
+            logging.info(f"Standby command return code: {standby_result.returncode}")
+            if standby_result.stdout:
+                logging.info(f"Standby command stdout: {standby_result.stdout}")
+            if standby_result.stderr:
+                logging.info(f"Standby command stderr: {standby_result.stderr}")
+            
+            if standby_result.returncode == 0:
+                logging.info("Standby command completed successfully")
+                logging.info("HDMI + Standby sequence completed")
+                return True
+            else:
+                logging.error(f"Standby command failed with code {standby_result.returncode}")
+                return False
+                
+        except subprocess.TimeoutExpired:
+            logging.error("HDMI + Standby command timed out")
+            return False
+        except Exception as e:
+            logging.error(f"Error in HDMI + Standby sequence: {e}")
+            return False
     
     def handle_button_press(self, key_event):
         """Handle macro pad button press"""
@@ -146,16 +211,22 @@ class DDCMonitorSwitcher:
         
         # Check if the scancode matches our mapping
         if scancode in self.button_mapping:
-            input_name = self.button_mapping[scancode]
-            logging.info(f"Button mapped to: {input_name}")
+            action = self.button_mapping[scancode]
+            logging.info(f"Button mapped to: {action}")
             logging.info(f"Current input: {self.current_input}")
             
-            # Check if we're already on the requested input
-            if self.current_input == input_name:
-                logging.info(f"Already on {input_name}, skipping switch")
+            # Handle special HDMI + Standby action
+            if action == 'hdmi_standby':
+                logging.info("Executing HDMI + Standby sequence")
+                self.switch_to_hdmi_and_standby()
             else:
-                logging.info(f"Switching from {self.current_input} to {input_name}")
-                self.switch_input(input_name)
+                # Handle regular input switching
+                # Check if we're already on the requested input
+                if self.current_input == action:
+                    logging.info(f"Already on {action}, skipping switch")
+                else:
+                    logging.info(f"Switching from {self.current_input} to {action}")
+                    self.switch_input(action)
         else:
             logging.info(f"Scancode {scancode} not found in button mapping")
             logging.info(f"Available mappings: {self.button_mapping}")

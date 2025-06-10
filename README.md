@@ -12,7 +12,8 @@ This project creates a seamless way to switch between multiple computers connect
 
 ## ✨ Features
 
-- **One-button switching** between DisplayPort and USB-C inputs
+- **One-button switching** between DisplayPort, USB-C, and HDMI inputs
+- **HDMI + Standby mode** - Switch to HDMI and activate monitor standby with a single button
 - **Automatic startup** on Pi boot
 - **Smart switching** - skips unnecessary commands if already on target input
 - **Comprehensive logging** with automatic rotation
@@ -71,6 +72,7 @@ sudo ddcutil setvcp 60 27 --bus=X  # USB-C
 Using VIA or QMK (I used [VIA's browser app](https://usevia.app)), program your macro pad buttons to:
 - **Button 1**: F23
 - **Button 2**: F24
+- **Button 3**: F22 (optional - for HDMI + Standby)
 
 ### 5. Install as System Service
 
@@ -92,10 +94,12 @@ sudo systemctl status ddc-switcher.service
 Once installed and running:
 - **Press Button 1 (F23)**: Switch to DisplayPort
 - **Press Button 2 (F24)**: Switch to USB-C
+- **Press Button 3 (F22)**: Switch to HDMI and activate standby mode
 
 The system automatically:
 - Detects which input is currently active
 - Skips switching if already on the target input
+- Executes sequential commands for HDMI + Standby mode
 - Logs all activity for troubleshooting
 
 ## 📊 Monitoring
@@ -120,8 +124,8 @@ Edit `ddc_switcher.py` to modify input codes for your specific monitor:
 self.inputs = {
     'displayport': 15,  # VCP code for DisplayPort
     'usbc': 27,         # VCP code for USB-C
+    'hdmi': 17,         # VCP code for HDMI
     # Add other inputs as needed:
-    # 'hdmi1': 17,      # HDMI-1
     # 'hdmi2': 18,      # HDMI-2
 }
 ```
@@ -131,12 +135,20 @@ Modify button assignments:
 
 ```python
 self.button_mapping = {
-    evdev.ecodes.KEY_F23: 'displayport',
-    evdev.ecodes.KEY_F24: 'usbc',
+    evdev.ecodes.KEY_F23: 'displayport',  # Button 1 -> DisplayPort
+    evdev.ecodes.KEY_F24: 'usbc',         # Button 2 -> USB-C
+    evdev.ecodes.KEY_F22: 'hdmi_standby', # Button 3 -> HDMI + Standby
     # Add more buttons:
-    # evdev.ecodes.KEY_F13: 'hdmi1',
+    # evdev.ecodes.KEY_F21: 'hdmi',       # Regular HDMI switch
 }
 ```
+
+### HDMI + Standby Mode
+The F22 button executes a special sequence that:
+1. Switches monitor to HDMI input (VCP code 17)
+2. Immediately activates standby mode (VCP code D6 with value 02)
+
+This is useful when the Raspberry Pi is connected to the HDMI port and you want to put the monitor in standby mode. The monitor must be on the HDMI input for the standby command to work properly.
 
 ## 🛠️ Troubleshooting
 
