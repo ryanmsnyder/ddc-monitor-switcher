@@ -2,6 +2,7 @@
 """
 DDC Monitor Input Switcher
 Listens for macro pad button presses and switches monitor inputs via DDC commands
+Simple version: Always wakes monitor before switching (F23/F24 only)
 """
 
 import evdev
@@ -69,6 +70,31 @@ class DDCMonitorSwitcher:
             
         return None
     
+    def wake_monitor(self):
+        """Wake up the monitor from standby/sleep"""
+        cmd = [
+            'ddcutil', 'setvcp', 'D6', '01',  # Set power state to On
+            f'--bus={self.bus_number}', '--noverify'
+        ]
+        
+        try:
+            logging.info("Sending wake command to monitor")
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            
+            if result.returncode == 0:
+                logging.info("Wake command sent successfully")
+                return True
+            else:
+                logging.warning(f"Wake command failed with code {result.returncode}")
+                return False
+                
+        except subprocess.TimeoutExpired:
+            logging.error("Wake command timed out")
+            return False
+        except Exception as e:
+            logging.error(f"Error sending wake command: {e}")
+            return False
+    
     def switch_input(self, input_name):
         """Switch monitor input using DDC command"""
         if input_name not in self.inputs:
@@ -83,39 +109,22 @@ class DDCMonitorSwitcher:
         
         try:
             logging.info(f"Switching to {input_name} (VCP code: {vcp_code})")
-            logging.info(f"Executing command: {' '.join(cmd)}")
-            
-            # Check if ddcutil is available
-            which_result = subprocess.run(['which', 'ddcutil'], capture_output=True, text=True)
-            logging.info(f"ddcutil location: {which_result.stdout.strip()}")
             
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
             
-            logging.info(f"Command return code: {result.returncode}")
-            if result.stdout:
-                logging.info(f"Command stdout: {result.stdout}")
-            if result.stderr:
-                logging.info(f"Command stderr: {result.stderr}")
-            
             if result.returncode == 0:
-                logging.info(f"DDC command completed successfully")
+                logging.info(f"Successfully switched to {input_name}")
                 self.current_input = input_name
-                
-                # Verify the switch worked by checking current input
-                time.sleep(1)  # Give monitor time to switch
-                actual_input = self.get_current_input()
-                logging.info(f"Verified current input: {actual_input}")
-                
                 return True
             else:
-                logging.error(f"DDC command failed with code {result.returncode}")
+                logging.error(f"Input switch failed with code {result.returncode}")
                 return False
                 
         except subprocess.TimeoutExpired:
-            logging.error("DDC command timed out")
+            logging.error("Input switch command timed out")
             return False
         except Exception as e:
-            logging.error(f"Error executing DDC command: {e}")
+            logging.error(f"Error executing input switch: {e}")
             return False
     
     def get_current_input(self):
@@ -140,6 +149,16 @@ class DDCMonitorSwitcher:
         except:
             return 'unknown'
     
+    def wake_and_switch(self, input_name):
+        """Wake monitor and switch input - simple approach"""
+        logging.info(f"Wake and switch to {input_name} requested")
+        
+        # Step 1: Always send wake command (safe even if already awake)
+        self.wake_monitor()
+        
+        # Step 2: Switch to requested input
+        return self.switch_input(input_name)
+    
     def switch_to_hdmi_and_standby(self):
         """Switch to HDMI input and then activate standby mode"""
         logging.info("Starting HDMI + Standby sequence")
@@ -152,15 +171,7 @@ class DDCMonitorSwitcher:
         
         try:
             logging.info("Step 1: Switching to HDMI input")
-            logging.info(f"Executing command: {' '.join(hdmi_cmd)}")
-            
             hdmi_result = subprocess.run(hdmi_cmd, capture_output=True, text=True, timeout=10)
-            
-            logging.info(f"HDMI switch return code: {hdmi_result.returncode}")
-            if hdmi_result.stdout:
-                logging.info(f"HDMI switch stdout: {hdmi_result.stdout}")
-            if hdmi_result.stderr:
-                logging.info(f"HDMI switch stderr: {hdmi_result.stderr}")
             
             if hdmi_result.returncode != 0:
                 logging.error(f"HDMI switch failed with code {hdmi_result.returncode}")
@@ -176,19 +187,10 @@ class DDCMonitorSwitcher:
             ]
             
             logging.info("Step 2: Activating standby mode")
-            logging.info(f"Executing command: {' '.join(standby_cmd)}")
-            
             standby_result = subprocess.run(standby_cmd, capture_output=True, text=True, timeout=10)
             
-            logging.info(f"Standby command return code: {standby_result.returncode}")
-            if standby_result.stdout:
-                logging.info(f"Standby command stdout: {standby_result.stdout}")
-            if standby_result.stderr:
-                logging.info(f"Standby command stderr: {standby_result.stderr}")
-            
             if standby_result.returncode == 0:
-                logging.info("Standby command completed successfully")
-                logging.info("HDMI + Standby sequence completed")
+                logging.info("HDMI + Standby sequence completed successfully")
                 return True
             else:
                 logging.error(f"Standby command failed with code {standby_result.returncode}")
@@ -207,33 +209,29 @@ class DDCMonitorSwitcher:
         scancode = key_event.scancode
         keycode_str = key_event.keycode
         
-        logging.info(f"Handling button press - scancode: {scancode}, keycode: {keycode_str}")
+        logging.info(f"Button press detected - scancode: {scancode}, keycode: {keycode_str}")
         
         # Check if the scancode matches our mapping
         if scancode in self.button_mapping:
             action = self.button_mapping[scancode]
             logging.info(f"Button mapped to: {action}")
-            logging.info(f"Current input: {self.current_input}")
             
             # Handle special HDMI + Standby action
             if action == 'hdmi_standby':
                 logging.info("Executing HDMI + Standby sequence")
                 self.switch_to_hdmi_and_standby()
             else:
-                # Handle regular input switching
-                # Check if we're already on the requested input
-                if self.current_input == action:
-                    logging.info(f"Already on {action}, skipping switch")
-                else:
-                    logging.info(f"Switching from {self.current_input} to {action}")
-                    self.switch_input(action)
+                # Handle regular input switching with wake
+                logging.info(f"Executing wake and switch to {action}")
+                self.wake_and_switch(action)
         else:
             logging.info(f"Scancode {scancode} not found in button mapping")
             logging.info(f"Available mappings: {self.button_mapping}")
     
     def run(self):
         """Main event loop"""
-        logging.info("Starting DDC Monitor Switcher...")
+        logging.info("Starting Simple DDC Monitor Switcher...")
+        logging.info("Mode: Always wake + switch for F23/F24")
         
         # Find macro pad
         self.device = self.find_macro_pad()
@@ -252,9 +250,6 @@ class DDCMonitorSwitcher:
             for event in self.device.read_loop():
                 if event.type == evdev.ecodes.EV_KEY:
                     key_event = evdev.categorize(event)
-                    
-                    # Debug: Show all key events
-                    logging.info(f"Key event detected: {key_event.keycode} (state: {key_event.keystate})")
                     
                     # Only handle key press events (not release)
                     if key_event.keystate == evdev.KeyEvent.key_down:
