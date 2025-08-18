@@ -1,5 +1,5 @@
 [Unit]
-Description=DDC Monitor Input Switcher
+Description=DDC Monitor and USB Switch Input Switcher
 After=multi-user.target
 Wants=multi-user.target
 
@@ -7,7 +7,7 @@ Wants=multi-user.target
 Type=simple
 User=root
 Group=root
-ExecStart=/usr/bin/python3 /home/ryan/ddc_switcher.py
+ExecStart=/usr/bin/python3 /home/ryan/ddc_usb_switcher.py
 Restart=always
 RestartSec=5
 StandardOutput=journal
